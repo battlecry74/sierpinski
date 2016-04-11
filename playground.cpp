@@ -16,6 +16,63 @@ using namespace glm;
 
 #include <common/shader.hpp>
 
+
+static int nTriangle = 0;
+static int nVertex = 0;
+int depth = 3;
+
+void addVertex(GLfloat* vertex, GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2, GLfloat x3, GLfloat y3) {
+
+	vertex[nVertex+0] = x1;
+	vertex[nVertex+1] = y1;
+	vertex[nVertex+2] = 0.0f;
+	vertex[nVertex+3] = x2;
+	vertex[nVertex+4] = y2;
+	vertex[nVertex+5] = 0.0f;
+	vertex[nVertex+6] = x3;
+	vertex[nVertex+7] = y3;
+	vertex[nVertex+8] = 0.0f;
+
+    nVertex += 9;
+    nTriangle++;
+}
+
+
+void subTriangle(GLfloat* vertex, GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2, GLfloat x3, GLfloat y3, int nRecursion) {
+    addVertex(vertex, x1, y1, x2, y2, x3, y3);
+    if (nRecursion < depth) {
+        GLfloat aX = (x1+x2)/2; GLfloat aY = (y1+y2)/2;
+        GLfloat bX = (x1+x3)/2; GLfloat bY = (y1+y3)/2;
+        GLfloat cX = (x2+x3)/2; GLfloat cY = (y2+y3)/2;
+
+        subTriangle(
+                    vertex, aX, aY, aX + (x2-x3)/2, aY + (y2-y3)/2, aX + (x1-x3)/2, aY + (y1-y3)/2, nRecursion+1
+                    );
+        subTriangle(
+                    vertex, bX, bY, bX + (x1-x2)/2, bY + (y1-y2)/2, bX + (x3-x2)/2, bY + (y3-y2)/2, nRecursion+1
+                    );
+        subTriangle(
+                    vertex, cX, cY, cX + (x2-x1)/2, cY + (y2-y1)/2, cX + (x3-x1)/2, cY + (y3-y1)/2, nRecursion+1
+                    );
+    }
+}
+
+void sierpinskiTriangle(GLfloat* vertex, GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2, GLfloat x3, GLfloat y3) {
+    //addVertex(vertex, x1, y1, x2, y2, x3, y3);
+    if(depth > 0) {
+        subTriangle(
+                    vertex, (x1+x2)/2, (y1+y2)/2, (x1+x3)/2, (y1+y3)/2, (x2+x3)/2, (y2+y3)/2, 1
+                    );
+    }
+}
+
+void setColor(GLfloat* vertexColor, GLfloat color){
+    for(int i = 9; i < nVertex; i++) {
+        vertexColor[i] = color;
+    }
+}
+
+
 int main( void )
 {
 	// Initialise GLFW
@@ -176,10 +233,20 @@ int main( void )
 		0.517f,  0.713f,  0.338f
 	};
 
+	GLfloat g_vertex_buffer_data_Triangle[1000];
+    sierpinskiTriangle(g_vertex_buffer_data, -1.0f,-0.5f,1.0f,-0.5f,0.0f,1.0f);
+
+
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+	GLuint vertexbufferTriangle;
+	glGenBuffers(1, &vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbufferTriangle);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data_Triangle), g_vertex_buffer_data, GL_STATIC_DRAW);
+
 
 	GLuint colorbuffer;
 	glGenBuffers(1, &colorbuffer);
@@ -210,6 +277,20 @@ int main( void )
 			(void*)0            // array buffer offset
 		);
 
+/*
+		// Sierpinski Triangle
+		// 1st attribute buffer : vertices
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+		glVertexAttribPointer(
+			0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+			3,                  // size
+			GL_FLOAT,           // type
+			GL_FALSE,           // normalized?
+			0,   // stride
+			(void*)0            // array buffer offset
+		);
+*/
 		// 2nd attribute buffer : colors
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
